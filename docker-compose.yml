@@ -8,9 +8,9 @@ services:
         condition: service_healthy
     environment:
       DB_HOST: db
-      DB_NAME: snipptr
-      DB_USER: snipptr
-      DB_PASS: secret
+      DB_NAME: ${DB_NAME:-snipptr}
+      DB_USER: ${DB_USER:-snipptr}
+      DB_PASS: ${DB_PASS:-secret}
 
   nginx:
     image: nginx:1.25-alpine
@@ -25,13 +25,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: snipptr
-      POSTGRES_USER: snipptr
-      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ${DB_NAME:-snipptr}
+      POSTGRES_USER: ${DB_USER:-snipptr}
+      POSTGRES_PASSWORD: ${DB_PASS:-secret}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U snipptr"]
+      test: ["CMD-SHELL", "pg_isready -U $${DB_USER:-snipptr}"]
       interval: 5s
       timeout: 5s
       retries: 5
