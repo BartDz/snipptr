@@ -1,10 +1,11 @@
-FROM php:8.3-apache
+FROM php:8.3-fpm
 
 RUN apt-get update && apt-get install -y libpq-dev unzip git \
     && docker-php-ext-install pdo pdo_pgsql \
-    && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
-COPY vhost.conf /etc/apache2/sites-available/000-default.conf
+RUN groupadd -g 1000 appuser && useradd -u 1000 -g appuser -m appuser
 
 WORKDIR /var/www/html
+
+USER appuser
