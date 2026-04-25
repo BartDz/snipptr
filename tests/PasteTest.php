@@ -16,23 +16,60 @@ class PasteTest extends TestCase
         $this->pdo->exec('TRUNCATE pastes, rate_limits RESTART IDENTITY CASCADE');
     }
 
-    public function test_create_returns_slug_and_id(): void
+    /**
+     * @dataProvider pasteCreationProvider
+     * @test
+     */
+    public function pasteCreationWorksCorrectly(string $content, string $language, string $expires, ?string $password): void
     {
-        $result = Paste::create($this->pdo, '<?php echo 1;', 'php', 'never', null);
+        $result = Paste::create($this->pdo, $content, $language, $expires, $password);
         $this->assertArrayHasKey('slug', $result);
         $this->assertArrayHasKey('id', $result);
         $this->assertSame(7, strlen($result['slug']));
     }
 
-    public function test_find_by_slug_returns_correct_content(): void
+    public static function pasteCreationProvider(): array
     {
-        $created = Paste::create($this->pdo, 'SELECT 1', 'sql', 'never', null);
-        $found   = Paste::findBySlug($this->pdo, $created['slug']);
-        $this->assertNotNull($found);
-        $this->assertSame('SELECT 1', $found['content']);
+        return [
+            'php paste without password' => ['<?php echo 1;', 'php', 'never', null],
+            'sql paste with expiry' => ['SELECT 1', 'sql', '1h', null],
+            'protected paste' => ['secret data', 'php', 'never', 'password123'],
+        ];
     }
 
-    public function test_expired_paste_returns_null(): void
+    /**
+     * @dataProvider pasteRetrievalProvider
+     * @test
+     */
+    public function pasteRetrievalWorksCorrectly(string $slug, ?string $expectedContent): void
+    {
+        if ($expectedContent !== null) {
+            $created = Paste::create($this->pdo, $expectedContent, 'php', 'never', null);
+            $slug = $created['slug'];
+        }
+        
+        $found = Paste::findBySlug($this->pdo, $slug);
+        
+        if ($expectedContent === null) {
+            $this->assertNull($found);
+        } else {
+            $this->assertNotNull($found);
+            $this->assertSame($expectedContent, $found['content']);
+        }
+    }
+
+    public static function pasteRetrievalProvider(): array
+    {
+        return [
+            'valid slug' => ['', 'SELECT 1'],
+            'nonexistent slug' => ['aaaaaaa', null],
+        ];
+    }
+
+    /**
+     * @test
+     */
+    public function expiredPasteReturnsNull(): void
     {
         $this->pdo->exec("
             INSERT INTO pastes (slug, content, language, expires_at)
@@ -41,12 +78,11 @@ class PasteTest extends TestCase
         $this->assertNull(Paste::findBySlug($this->pdo, 'expired1'));
     }
 
-    public function test_nonexistent_slug_returns_null(): void
-    {
-        $this->assertNull(Paste::findBySlug($this->pdo, 'aaaaaaa'));
-    }
 
-    public function test_increment_views(): void
+    /**
+     * @test
+     */
+    public function incrementViews(): void
     {
         $created = Paste::create($this->pdo, 'code', 'php', 'never', null);
         Paste::incrementViews($this->pdo, $created['slug']);
@@ -54,7 +90,10 @@ class PasteTest extends TestCase
         $this->assertSame(1, (int)$found['views']);
     }
 
-    public function test_rate_limit_after_10_requests(): void
+    /**
+     * @test
+     */
+    public function rateLimitAfter10Requests(): void
     {
         for ($i = 0; $i < 10; $i++) {
             Paste::trackRequest($this->pdo, '1.2.3.4');
@@ -62,10 +101,13 @@ class PasteTest extends TestCase
         $this->assertTrue(Paste::isRateLimited($this->pdo, '1.2.3.4'));
     }
 
-    public function test_password_hash_is_stored(): void
+    /**
+     * @test
+     */
+    public function passwordHashIsStored(): void
     {
         $created = Paste::create($this->pdo, 'secret', 'php', 'never', 'mypassword');
-        $found   = Paste::findBySlug($this->pdo, $created['slug']);
+        $found = Paste::findBySlug($this->pdo, $created['slug']);
         $this->assertNotNull($found['password_hash']);
         $this->assertTrue(password_verify('mypassword', $found['password_hash']));
     }

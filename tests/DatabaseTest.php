@@ -7,30 +7,41 @@ use PDO;
 
 class DatabaseTest extends TestCase
 {
-    public function test_connect_returns_pdo(): void
+    /**
+     * @test
+     */
+    public function connectReturnsPdo(): void
     {
         $pdo = Database::connect();
         $this->assertInstanceOf(PDO::class, $pdo);
     }
 
-    public function test_connect_is_singleton(): void
+    /**
+     * @test
+     */
+    public function connectIsSingleton(): void
     {
         $a = Database::connect();
         $b = Database::connect();
         $this->assertSame($a, $b);
     }
 
-    public function test_pastes_table_exists(): void
+    /**
+     * @dataProvider tableProvider
+     * @test
+     */
+    public function tablesExist(string $tableName): void
     {
         $pdo = Database::connect();
-        $stmt = $pdo->query("SELECT to_regclass('public.pastes')");
+        $stmt = $pdo->query("SELECT to_regclass('public.{$tableName}')");
         $this->assertNotNull($stmt->fetchColumn());
     }
 
-    public function test_rate_limits_table_exists(): void
+    public static function tableProvider(): array
     {
-        $pdo = Database::connect();
-        $stmt = $pdo->query("SELECT to_regclass('public.rate_limits')");
-        $this->assertNotNull($stmt->fetchColumn());
+        return [
+            'pastes table' => ['pastes'],
+            'rate_limits table' => ['rate_limits'],
+        ];
     }
 }

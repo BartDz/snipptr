@@ -6,7 +6,64 @@ use Snipptr\PasteInput;
 
 class PasteInputTest extends TestCase
 {
-    public function test_valid_post_input(): void
+    /**
+     * @dataProvider invalidContentProvider
+     * @test
+     */
+    public function invalidContentIsRejected(string $content, string $expectedError): void
+    {
+        $input = PasteInput::fromPost(['content' => $content]);
+        $this->assertFalse($input->isValid());
+        $this->assertStringContainsStringIgnoringCase($expectedError, $input->error);
+    }
+
+    public static function invalidContentProvider(): array
+    {
+        return [
+            'empty content' => ['   ', 'empty'],
+            'content over limit' => [str_repeat('x', 64001), 'too large'],
+        ];
+    }
+
+    /**
+     * @dataProvider fallbackValueProvider
+     * @test
+     */
+    public function invalidValuesFallBackToDefaults(array $input, string $field, string $expected): void
+    {
+        $pasteInput = PasteInput::fromPost(['content' => 'hello', ...$input]);
+        $this->assertSame($expected, $pasteInput->$field);
+    }
+
+    public static function fallbackValueProvider(): array
+    {
+        return [
+            'unknown language' => [['language' => 'cobol'], 'language', 'plaintext'],
+            'unknown expires' => [['expires' => '1year'], 'expires', 'never'],
+        ];
+    }
+
+    /**
+     * @dataProvider passwordProvider
+     * @test
+     */
+    public function passwordHandlingWorksCorrectly(string $password, ?string $expected): void
+    {
+        $input = PasteInput::fromPost(['content' => 'hello', 'password' => $password]);
+        $this->assertSame($expected, $input->password);
+    }
+
+    public static function passwordProvider(): array
+    {
+        return [
+            'whitespace password' => ['   ', null],
+            'valid password' => ['secret', 'secret'],
+        ];
+    }
+    /**
+     * @test
+     */
+    public function validPostInput(): void
     {
         $input = PasteInput::fromPost(['content' => 'echo 1', 'language' => 'php', 'expires' => '24h', 'password' => '']);
         $this->assertTrue($input->isValid());
@@ -16,61 +73,40 @@ class PasteInputTest extends TestCase
         $this->assertNull($input->password);
     }
 
-    public function test_empty_content_is_invalid(): void
+
+    /**
+     * @dataProvider jsonValidationProvider
+     * @test
+     */
+    public function jsonInputValidationWorksCorrectly(array $input, bool $shouldBeValid, array $expectedValues = []): void
     {
-        $input = PasteInput::fromPost(['content' => '   ']);
-        $this->assertFalse($input->isValid());
-        $this->assertStringContainsStringIgnoringCase('empty', $input->error);
+        $pasteInput = PasteInput::fromJson($input);
+        $this->assertSame($shouldBeValid, $pasteInput->isValid());
+        
+        if (!empty($expectedValues)) {
+            foreach ($expectedValues as $field => $expected) {
+                $this->assertSame($expected, $pasteInput->$field);
+            }
+        }
     }
 
-    public function test_content_over_limit_is_invalid(): void
+    public static function jsonValidationProvider(): array
     {
-        $input = PasteInput::fromPost(['content' => str_repeat('x', 64001)]);
-        $this->assertFalse($input->isValid());
-        $this->assertStringContainsStringIgnoringCase('too large', $input->error);
-    }
-
-    public function test_unknown_language_falls_back_to_plaintext(): void
-    {
-        $input = PasteInput::fromPost(['content' => 'hello', 'language' => 'cobol']);
-        $this->assertSame('plaintext', $input->language);
-    }
-
-    public function test_unknown_expires_falls_back_to_never(): void
-    {
-        $input = PasteInput::fromPost(['content' => 'hello', 'expires' => '1year']);
-        $this->assertSame('never', $input->expires);
-    }
-
-    public function test_whitespace_password_becomes_null(): void
-    {
-        $input = PasteInput::fromPost(['content' => 'hello', 'password' => '   ']);
-        $this->assertNull($input->password);
-    }
-
-    public function test_password_is_preserved(): void
-    {
-        $input = PasteInput::fromPost(['content' => 'hello', 'password' => 'secret']);
-        $this->assertSame('secret', $input->password);
-    }
-
-    public function test_valid_json_input(): void
-    {
-        $input = PasteInput::fromJson(['content' => 'SELECT 1', 'language' => 'sql', 'expires' => '1h']);
-        $this->assertTrue($input->isValid());
-        $this->assertSame('sql', $input->language);
-        $this->assertSame('1h', $input->expires);
-    }
-
-    public function test_json_strips_invalid_language_chars(): void
-    {
-        $input = PasteInput::fromJson(['content' => 'hello', 'language' => 'not-a-lang!']);
-        $this->assertSame('plaintext', $input->language);
-    }
-
-    public function test_json_empty_body_is_invalid(): void
-    {
-        $input = PasteInput::fromJson([]);
-        $this->assertFalse($input->isValid());
+        return [
+            'valid json input' => [
+                ['content' => 'SELECT 1', 'language' => 'sql', 'expires' => '1h'],
+                true,
+                ['language' => 'sql', 'expires' => '1h']
+            ],
+            'json strips invalid language chars' => [
+                ['content' => 'hello', 'language' => 'not-a-lang!'],
+                true,
+                ['language' => 'plaintext']
+            ],
+            'json empty body is invalid' => [
+                [],
+                false
+            ],
+        ];
     }
 }

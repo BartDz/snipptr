@@ -6,17 +6,26 @@ use Snipptr\Slug;
 
 class SlugTest extends TestCase
 {
-    public function test_generate_returns_7_chars(): void
+    /**
+     * @test
+     */
+    public function generateReturns7Chars(): void
     {
         $this->assertSame(7, strlen(Slug::generate()));
     }
 
-    public function test_generate_is_alphanumeric(): void
+    /**
+     * @test
+     */
+    public function generateIsAlphanumeric(): void
     {
         $this->assertMatchesRegularExpression('/^[a-z0-9]+$/', Slug::generate());
     }
 
-    public function test_generates_unique_slugs(): void
+    /**
+     * @test
+     */
+    public function generatesUniqueSlugs(): void
     {
         $slugs = array_map(fn($_) => Slug::generate(), range(1, 100));
         $this->assertCount(100, array_unique($slugs));
