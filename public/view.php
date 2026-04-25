@@ -102,6 +102,7 @@ $prismLang = match ($paste['language']) {
     <main class="snippet-view fade-in">
         <div class="copy-bar">
             <button id="copy-btn" class="btn-copy">Copy</button>
+            <button id="fork-btn" class="btn-copy">Fork</button>
         </div>
         <pre class="line-numbers"><code class="language-<?= $prismLang ?>"><?= $content ?></code></pre>
     </main>
@@ -109,6 +110,7 @@ $prismLang = match ($paste['language']) {
     <script>
     window.snipptrData = {
         content:   <?= json_encode($paste['content'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        slug:      <?= json_encode($slug) ?>,
         expiresMs: <?= $expiresMs ?? 'null' ?>,
     };
     </script>

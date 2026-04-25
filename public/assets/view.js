@@ -1,4 +1,27 @@
-const { content, expiresMs } = window.snipptrData;
+const { content, slug, expiresMs } = window.snipptrData;
+
+document.getElementById('fork-btn').addEventListener('click', function (e) {
+    e.preventDefault();
+    this.disabled = true;
+    this.textContent = 'Forking...';
+
+    fetch(`/api/fork/${slug}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.url) {
+                window.location = d.url;
+            } else {
+                this.textContent = 'Fork';
+                this.disabled = false;
+                alert('Fork failed: ' + (d.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            this.textContent = 'Fork';
+            this.disabled = false;
+            alert('Fork failed: ' + err.message);
+        });
+});
 
 document.getElementById('copy-btn').addEventListener('click', function () {
     navigator.clipboard.writeText(content).then(() => {

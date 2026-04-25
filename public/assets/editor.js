@@ -1,16 +1,16 @@
 const langToMode = {
     php:        'application/x-httpd-php',
     javascript: 'javascript',
-    typescript: { name: 'javascript', typescript: true },
+    typescript: 'javascript',
     python:     'python',
     html:       'htmlmixed',
     css:        'css',
     sql:        'text/x-sql',
     bash:       'shell',
-    json:       { name: 'javascript', json: true },
+    json:       'javascript',
     xml:        'xml',
     go:         'go',
-    rust:       'rust',
+    rust:       null,
     java:       'text/x-java',
     c:          'text/x-csrc',
     cpp:        'text/x-c++src',
@@ -54,13 +54,29 @@ document.getElementById('language-select').addEventListener('change', function (
     editor.setOption('mode', langToMode[this.value] ?? null);
 });
 
-document.getElementById('detect-btn').addEventListener('click', () => {
+function detectLanguage() {
     const code = editor.getValue().slice(0, 500);
     for (const { lang, re } of detectPatterns) {
         if (re.test(code)) {
             document.getElementById('language-select').value = lang;
-            editor.setOption('mode', langToMode[lang] ?? null);
+            try {
+                editor.setOption('mode', langToMode[lang] ?? null);
+            } catch (err) {
+                console.error('Failed to set mode for ' + lang + ':', err);
+                editor.setOption('mode', null);
+            }
             return;
         }
     }
+}
+
+document.getElementById('detect-btn').addEventListener('click', detectLanguage);
+
+let detectTimeout;
+editor.on('change', () => {
+    const content = editor.getValue();
+    if (content.length < 10) return;
+
+    clearTimeout(detectTimeout);
+    detectTimeout = setTimeout(detectLanguage, 500);
 });

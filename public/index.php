@@ -8,9 +8,13 @@ use Snipptr\PasteInput;
 use Snipptr\Request;
 use Snipptr\Response;
 
-$pdo       = Database::connect();
-$csrfToken = Csrf::token();
-$error     = null;
+session_start();
+
+$pdo           = Database::connect();
+$csrfToken     = Csrf::token();
+$error         = null;
+$forkContent   = $_SESSION['fork_content'] ?? null;
+unset($_SESSION['fork_content']);
 
 if (Request::isPost()) {
     Csrf::check();
@@ -91,7 +95,7 @@ $languages = [
                 <input type="password" name="password" placeholder="Password (optional)" autocomplete="off">
             </div>
 
-            <textarea id="editor" name="content" placeholder="Paste your code here..."><?= isset($_POST['content']) ? htmlspecialchars($_POST['content']) : '' ?></textarea>
+            <textarea id="editor" name="content" placeholder="Paste your code here..."><?= $forkContent ? htmlspecialchars($forkContent) : (isset($_POST['content']) ? htmlspecialchars($_POST['content']) : '') ?></textarea>
 
             <div class="form-actions">
                 <button type="button" id="detect-btn" class="btn-secondary">Auto-detect language</button>
@@ -110,7 +114,6 @@ $languages = [
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/go/go.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/rust/rust.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>

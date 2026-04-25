@@ -93,4 +93,34 @@ class Paste
         $pdo->prepare('INSERT INTO rate_limits (ip) VALUES (?)')->execute([$ip]);
         $pdo->prepare("DELETE FROM rate_limits WHERE created_at < NOW() - INTERVAL '2 hours'")->execute();
     }
+
+    public static function fork(
+        PDO $pdo,
+        string $slug
+    ): ?array {
+        $original = self::findBySlug($pdo, $slug);
+        if (!$original) {
+            return null;
+        }
+
+        return self::create(
+            $pdo,
+            $original['content'],
+            $original['language'],
+            $original['expires_at'] ? self::getExpiresOption($original['expires_at']) : 'never',
+            null
+        );
+    }
+
+    private static function getExpiresOption(string $expiresAt): string
+    {
+        $expiresTime = strtotime($expiresAt);
+        $now = time();
+        $diff = $expiresTime - $now;
+
+        if ($diff > 604800) return '7d';
+        if ($diff > 86400) return '24h';
+        if ($diff > 3600) return '1h';
+        return 'never';
+    }
 }
