@@ -2,6 +2,9 @@
 
 namespace Snipptr;
 
+use Snipptr\Constants\Lang;
+use Snipptr\Constants\Expire;
+
 class PasteInput
 {
     private const MAX_LEN = 64000;
