@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start services
+        run: docker compose up -d --build
+
+      - name: Wait for services
+        run: sleep 10
+
+      - name: Install dependencies
+        run: docker compose exec -T -u root app bash -c "git config --global --add safe.directory /var/www/html && curl -sS https://getcomposer.org/installer | php -- --install-dir=/tmp && /tmp/composer.phar install && chown -R www-data:www-data /var/www/html/vendor"
+
+      - name: Run tests
+        run: docker compose exec -T app ./vendor/bin/phpunit --testdox
+
+      - name: Stop services
+        if: always()
+        run: docker compose down
