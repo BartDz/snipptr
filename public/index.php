@@ -88,7 +88,7 @@ $languages = [
                     <option value="7d">7 days</option>
                 </select>
 
-                <input type="password" name="password" placeholder="Password (optional)" autocomplete="new-password">
+                <input type="password" name="password" placeholder="Password (optional)" autocomplete="off">
             </div>
 
             <textarea id="editor" name="content" placeholder="Paste your code here..."><?= isset($_POST['content']) ? htmlspecialchars($_POST['content']) : '' ?></textarea>

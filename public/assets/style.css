@@ -78,8 +78,7 @@ h1.logo { all: unset; font-size: 1.6rem; font-weight: 700; color: var(--accent);
     flex-wrap: wrap;
 }
 
-select,
-input[type="password"] {
+select {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 6px;
@@ -94,7 +93,51 @@ input[type="password"] {
 select:focus,
 input[type="password"]:focus { border-color: var(--accent); }
 
-input[type="password"] { flex: 1; min-width: 150px; }
+input[type="password"] {
+    flex: 1;
+    min-width: 150px;
+    background-color: #1a1a2e !important;
+    color: #e8e8f0 !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 6px;
+    padding: 0.45rem 0.75rem;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+/* Enhanced native select styling */
+select {
+    background-color: #1a1a2e !important;
+    color: #e8e8f0 !important;
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    padding: 0.45rem 0.75rem;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+}
+
+select:focus {
+    border-color: var(--accent);
+}
+
+/* Force dropdown options styling */
+select option {
+    background-color: #1a1a2e !important;
+    color: #e8e8f0 !important;
+    padding: 8px 12px;
+}
+
+select option:hover,
+select option:checked,
+select option:focus {
+    background-color: var(--accent) !important;
+    color: #fff !important;
+}
 
 /* ── CodeMirror overrides ─────────────────────────── */
 .CodeMirror {
