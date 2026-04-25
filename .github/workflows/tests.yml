@@ -18,7 +18,7 @@ jobs:
         run: sleep 10
 
       - name: Install dependencies
-        run: docker compose exec -T app bash -c "curl -sS https://getcomposer.org/installer | php -- --install-dir=/tmp && /tmp/composer.phar install"
+        run: docker compose exec -T app bash -c "git config --global --add safe.directory /var/www/html && mkdir -p /var/www/html/vendor && curl -sS https://getcomposer.org/installer | php -- --install-dir=/tmp && /tmp/composer.phar install"
 
       - name: Run tests
         run: docker compose exec -T app ./vendor/bin/phpunit --testdox
