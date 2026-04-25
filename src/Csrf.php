@@ -18,10 +18,20 @@ class Csrf
             session_start();
         }
         $expected = $_SESSION['_csrf'] ?? '';
-        $given    = $_POST['_csrf'] ?? '';
+        $given = $_POST['_csrf'] ?? '';
         if ($expected === '' || !hash_equals($expected, $given)) {
             http_response_code(403);
             exit('Bad request.');
         }
+        self::rotate();
+    }
+
+    public static function rotate(): string
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION['_csrf'] = bin2hex(random_bytes(32));
+        return $_SESSION['_csrf'];
     }
 }

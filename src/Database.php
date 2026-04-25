@@ -40,23 +40,23 @@ class Database
     {
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS pastes (
-                id            SERIAL PRIMARY KEY,
-                slug          VARCHAR(8)   UNIQUE NOT NULL,
-                content       TEXT         NOT NULL,
-                language      VARCHAR(50)  NOT NULL DEFAULT 'plaintext',
-                expires_at    TIMESTAMP    NULL,
+                id SERIAL PRIMARY KEY,
+                slug VARCHAR(8) UNIQUE NOT NULL,
+                content TEXT NOT NULL,
+                language VARCHAR(50) NOT NULL DEFAULT 'plaintext',
+                expires_at TIMESTAMP NULL,
                 password_hash VARCHAR(255) NULL,
-                views         INTEGER      NOT NULL DEFAULT 0,
-                created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                views INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TABLE IF NOT EXISTS rate_limits (
-                id         SERIAL PRIMARY KEY,
-                ip         VARCHAR(45)  NOT NULL,
-                created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                id SERIAL PRIMARY KEY,
+                ip_hash VARCHAR(64) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits(ip, created_at);
+            CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits(ip_hash, created_at);
         ");
     }
 }

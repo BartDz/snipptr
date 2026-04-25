@@ -73,16 +73,22 @@ class Paste
         $pdo->prepare('DELETE FROM pastes WHERE slug = ?')->execute([$slug]);
     }
 
+    private static function hashIp(string $ip): string
+    {
+        $salt = date('Y-m-d_H');
+        return hash('sha256', $ip . $salt);
+    }
+
     public static function isRateLimited(
         PDO $pdo,
         string $ip
-    ): bool
-    {
+    ): bool {
+        $hash = self::hashIp($ip);
         $stmt = $pdo->prepare("
             SELECT COUNT(*) FROM rate_limits
-            WHERE ip = ? AND created_at > NOW() - INTERVAL '1 hour'
+            WHERE ip_hash = ? AND created_at > NOW() - INTERVAL '1 hour'
         ");
-        $stmt->execute([$ip]);
+        $stmt->execute([$hash]);
         return (int)$stmt->fetchColumn() >= 10;
     }
 
@@ -90,7 +96,8 @@ class Paste
         PDO $pdo,
         string $ip
     ): void {
-        $pdo->prepare('INSERT INTO rate_limits (ip) VALUES (?)')->execute([$ip]);
+        $hash = self::hashIp($ip);
+        $pdo->prepare('INSERT INTO rate_limits (ip_hash) VALUES (?)')->execute([$hash]);
         $pdo->prepare("DELETE FROM rate_limits WHERE created_at < NOW() - INTERVAL '2 hours'")->execute();
     }
 

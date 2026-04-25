@@ -1,4 +1,4 @@
-const { content, slug, expiresMs } = window.snipptrData;
+const { content, slug, expiresMs, url } = window.snipptrData;
 
 document.getElementById('fork-btn').addEventListener('click', function (e) {
     e.preventDefault();
@@ -61,4 +61,25 @@ if (expiresMs) {
     }
 
     updateCountdown();
+}
+
+const qrToggle = document.getElementById('qr-toggle');
+const qrContainer = document.getElementById('qr-container');
+if (qrToggle && qrContainer && url) {
+    qrToggle.addEventListener('click', function () {
+        if (qrContainer.style.display === 'none') {
+            qrContainer.style.display = 'inline-block';
+            this.textContent = 'Hide QR';
+            if (!qrContainer.hasChildNodes()) {
+                new QRCode(qrContainer, {
+                    text: url,
+                    width: 180,
+                    height: 180,
+                });
+            }
+        } else {
+            qrContainer.style.display = 'none';
+            this.textContent = 'Show QR';
+        }
+    });
 }

@@ -7,9 +7,9 @@ use Snipptr\Constants\Expire;
 
 class PasteInput
 {
-    private const MAX_LEN = 64000;
+    private const MAX_LEN = 1048576;
     private const MESSAGE_EMPTY = 'Content cannot be empty.';
-    private const MESSAGE_TOO_LONG = 'Content too large. Max 64 000 characters.';
+    private const MESSAGE_TOO_LONG = 'Content too large. Max 1 MB.';
 
     public readonly string  $content;
     public readonly string  $language;

@@ -13,7 +13,8 @@ $slug      = Request::getSlug();
 $paste = Paste::findBySlug($pdo, $slug);
 
 if (!$paste) {
-    Response::notFound('<!DOCTYPE html><html><head><title>404</title></head><body style="font-family:monospace;padding:2rem"><h1>404 - Snippet not found or expired.</h1><a href="/">← New paste</a></body></html>');
+    Response::notFound('<!DOCTYPE html><html><head><title>404</title></head><body style="font-family:monospace;padding:2rem"><h1>404 - Snippet not found or expired.</h1><a href="/">← New paste</a><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</body></html>');
 }
 
 $hasPassword = $paste['password_hash'] !== null;
@@ -96,7 +97,7 @@ $prismLang = match ($paste['language']) {
             <?php endif; ?>
             <button type="submit" class="btn-primary">Unlock</button>
         </form>
-    </main>
+        </main>
 
     <?php else: ?>
     <main class="snippet-view fade-in">
@@ -105,7 +106,12 @@ $prismLang = match ($paste['language']) {
             <button id="fork-btn" class="btn-copy">Fork</button>
         </div>
         <pre class="line-numbers"><code class="language-<?= $prismLang ?>"><?= $content ?></code></pre>
-    </main>
+
+    <div class="qr-section" style="margin-top:1rem;text-align:center;">
+      <button id="qr-toggle" class="btn-secondary">Show QR</button>
+      <div id="qr-container" style="display:none;margin-top:1rem;padding:1rem;background:#fff;border-radius:8px;"></div>
+    </div>
+        </main>
 
     <script>
     window.snipptrData = {
@@ -121,5 +127,6 @@ $prismLang = match ($paste['language']) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 </html>
