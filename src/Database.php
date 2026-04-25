@@ -1,5 +1,5 @@
 <?php
-// src/Database.php
+
 namespace Snipptr;
 
 use PDO;

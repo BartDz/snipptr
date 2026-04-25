@@ -1,5 +1,5 @@
 <?php
-// src/Slug.php
+
 namespace Snipptr;
 
 use PDO;
@@ -8,6 +8,7 @@ class Slug
 {
     private const CHARS  = 'abcdefghijklmnopqrstuvwxyz0123456789';
     private const LENGTH = 7;
+    private const MESSAGE_UNIQUE = 'Could not generate a unique slug.';
 
     public static function generate(): string
     {
@@ -21,12 +22,14 @@ class Slug
 
     public static function unique(PDO $pdo): string
     {
-        do {
+        $stmt = $pdo->prepare('SELECT 1 FROM pastes WHERE slug = ?');
+        for ($i = 0; $i < 10; $i++) {
             $slug = self::generate();
-            $stmt = $pdo->prepare('SELECT 1 FROM pastes WHERE slug = ?');
             $stmt->execute([$slug]);
-        } while ($stmt->fetch());
-
-        return $slug;
+            if (!$stmt->fetch()) {
+                return $slug;
+            }
+        }
+        throw new \RuntimeException(self::MESSAGE_UNIQUE);
     }
 }
