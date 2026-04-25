@@ -17,6 +17,9 @@ jobs:
       - name: Wait for services
         run: sleep 10
 
+      - name: Install dependencies
+        run: docker compose exec -T app bash -c "curl -sS https://getcomposer.org/installer | php && php composer.phar install"
+
       - name: Run tests
         run: docker compose exec -T app ./vendor/bin/phpunit --testdox
 
