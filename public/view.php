@@ -106,10 +106,10 @@ $prismLang = match ($paste['language']) {
             <button id="fork-btn" class="btn-copy">Fork</button>
         </div>
         <pre class="line-numbers"><code class="language-<?= $prismLang ?>"><?= $content ?></code></pre>
-
-    <div class="qr-section" style="margin-top:1rem;text-align:center;">
-      <button id="qr-toggle" class="btn-secondary">Show QR</button>
-      <div id="qr-container" style="display:none;margin-top:1rem;padding:1rem;background:#fff;border-radius:8px;"></div>
+        <div class="qr-section" style="margin-top:1rem;text-align:center;min-height:220px;display:flex;flex-direction:column;align-items:center;">
+            <div id="qr-container" style="display:none;margin-bottom:1rem;padding:1rem;background:#fff;border-radius:8px;min-height:180px;"></div>
+            <button id="qr-toggle" class="btn-secondary">Show QR</button>
+        </div>
     </div>
         </main>
 
@@ -117,7 +117,8 @@ $prismLang = match ($paste['language']) {
     window.snipptrData = {
         content:   <?= json_encode($paste['content'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
         slug:      <?= json_encode($slug) ?>,
-        expiresMs: <?= $expiresMs ?? 'null' ?>,
+        expiresMs: <?= $expiresMs ?? 'null' ?>,        
+        url: <?= json_encode('http' . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:8080') . '/p/' . $slug) ?>,
     };
     </script>
     <script src="/assets/view.js"></script>
