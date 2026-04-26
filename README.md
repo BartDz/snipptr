@@ -36,8 +36,8 @@ Paste code → get a public URL with syntax highlighting, one-click copy, and op
 ```bash
 git clone repo_url
 cd snipptr
-docker-compose up -d --build
-docker-compose exec app bash -c "curl -sS https://getcomposer.org/installer | php && php composer.phar install"
+docker compose up -d --build
+docker compose exec app bash -c "curl -sS https://getcomposer.org/installer | php && php composer.phar install"
 ```
 
 Open [http://localhost:8080](http://localhost:8080)
@@ -76,7 +76,7 @@ curl http://localhost:8080/p/abc1234/raw
 PHPUnit test suite with coverage for core functionality:
 
 ```bash
-docker-compose exec app ./vendor/bin/phpunit --testdox
+docker compose exec app ./vendor/bin/phpunit --testdox
 ```
 
 **Test Coverage:**
