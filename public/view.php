@@ -7,6 +7,7 @@ use Snipptr\Database;
 use Snipptr\Paste;
 use Snipptr\Request;
 use Snipptr\Response;
+use Snipptr\Constants\Lang;
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -46,36 +47,16 @@ $expiresMs = $paste->getExpiresAt() ? (int)(strtotime($paste->getExpiresAt()) * 
 $lang = htmlspecialchars($paste->getLanguage());
 $content = htmlspecialchars($paste->getContent());
 
-$prismLang = match ($paste['language']) {
-    'html', 'xml' => 'markup',
-    'bash'        => 'bash',
-    'c'           => 'c',
-    'cpp'         => 'cpp',
-    'css'         => 'css',
-    'go'          => 'go',
-    'java'        => 'java',
-    'javascript'  => 'javascript',
-    'json'        => 'json',
-    'markdown'    => 'markdown',
-    'php'         => 'php',
-    'python'      => 'python',
-    'rust'        => 'rust',
-    'sql'         => 'sql',
-    'typescript'  => 'typescript',
-    default       => 'none',
-};
+$prismLang = Lang::getPrismLanguage($paste->getLanguage());
+$title = "snipptr - {$lang}";
+$extraStyles = [
+    'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css',
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>snipptr - <?= $lang ?></title>
-    <link rel="icon" type="image/png" href="/assets/favicon.png">
-    <link rel="stylesheet" href="/assets/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
-</head>
+<?php include __DIR__ . '/../templates/head.php'; ?>
 <body>
 <div class="page">
     <header class="site-header">

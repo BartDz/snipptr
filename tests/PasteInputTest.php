@@ -21,7 +21,7 @@ class PasteInputTest extends TestCase
     {
         return [
             'empty content' => ['   ', 'empty'],
-            'content over limit' => [str_repeat('x', 64001), 'too large'],
+            'content over limit' => [str_repeat('x', 1048577), 'too large'],
         ];
     }
 

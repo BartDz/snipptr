@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Snipptr\Csrf;
@@ -7,6 +8,8 @@ use Snipptr\Paste;
 use Snipptr\PasteInput;
 use Snipptr\Request;
 use Snipptr\Response;
+use Snipptr\Constants\Lang;
+use Snipptr\Constants\Expire;
 
 session_start();
 
@@ -33,37 +36,17 @@ if (Request::isPost()) {
     }
 }
 
-$languages = [
-    'plaintext'  => 'Plain Text',
-    'php'        => 'PHP',
-    'javascript' => 'JavaScript',
-    'typescript' => 'TypeScript',
-    'python'     => 'Python',
-    'html'       => 'HTML',
-    'css'        => 'CSS',
-    'sql'        => 'SQL',
-    'bash'       => 'Bash',
-    'json'       => 'JSON',
-    'xml'        => 'XML',
-    'go'         => 'Go',
-    'rust'       => 'Rust',
-    'java'       => 'Java',
-    'c'          => 'C',
-    'cpp'        => 'C++',
-    'markdown'   => 'Markdown',
+$languages = Lang::getSelectFieldOptions();
+$expirations = Expire::getSelectFieldOptions();
+$title = 'Snipptr - Share Code';
+$extraStyles = [
+    'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css',
 ];
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snipptr - Share Code</title>
-    <link rel="icon" type="image/png" href="/assets/favicon.png">
-    <link rel="stylesheet" href="/assets/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-</head>
+<?php include __DIR__ . '/../templates/head.php'; ?>
 <body>
 <div class="page">
     <header class="site-header">
@@ -86,10 +69,9 @@ $languages = [
                 </select>
 
                 <select name="expires">
-                    <option value="never">Never</option>
-                    <option value="1h">1 hour</option>
-                    <option value="24h">24 hours</option>
-                    <option value="7d">7 days</option>
+                    <?php foreach ($expirations as $val => $label): ?>
+                        <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($label) ?></option>
+                    <?php endforeach; ?>
                 </select>
 
                 <input type="password" name="password" placeholder="Password (optional)" autocomplete="off">
