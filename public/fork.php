@@ -10,19 +10,18 @@ if (!Request::isPost()) {
     Response::json(['error' => 'Method Not Allowed'], 405);
 }
 
-$pdo  = Database::connect();
+$pdo = Database::connect();
 $slug = Request::getSlug();
 
-$original = Paste::findBySlug($pdo, $slug);
-
-if (!$original) {
+$originalPaste = Paste::findBySlug($pdo, $slug);
+if (!$originalPaste) {
     Response::json(['error' => 'Original snippet not found or expired'], 404);
 }
 
 session_start();
-$_SESSION['fork_content'] = $original['content'];
+$_SESSION['fork_content'] = $originalPaste->getContent();
 
-$scheme  = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+$scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
 $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'];
 
 Response::json([

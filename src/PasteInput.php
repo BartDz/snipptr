@@ -15,31 +15,36 @@ class PasteInput
     public readonly string  $language;
     public readonly string  $expires;
     public readonly ?string $password;
+    public readonly bool    $burnAfterRead;
     public readonly ?string $error;
 
     private function __construct(
         string $content,
         string $language,
         string $expires,
-        ?string $password
+        ?string $password,
+        bool $burnAfterRead = false
     ) {
-        $this->content  = $content;
-        $this->language = $language;
-        $this->expires  = $expires;
-        $this->password = $password;
-        $this->error    = $this->validate();
+        $this->content       = $content;
+        $this->language      = $language;
+        $this->expires       = $expires;
+        $this->password      = $password;
+        $this->burnAfterRead = $burnAfterRead;
+        $this->error         = $this->validate();
     }
 
     public static function fromPost(array $post): self
     {
         $lang = $post['language'] ?? '';
         $exp  = $post['expires'] ?? '';
+        $burn = isset($post['burn_after_read']) && $post['burn_after_read'] === 'on';
 
         return new self(
             trim($post['content'] ?? ''),
             in_array($lang, self::getLangs(), true) ? $lang : 'plaintext',
             in_array($exp, self::getExpirations(), true) ? $exp : 'never',
             trim($post['password'] ?? '') ?: null,
+            $burn
         );
     }
 
@@ -47,12 +52,14 @@ class PasteInput
     {
         $lang = strtolower(preg_replace('/[^a-z0-9+]/', '', $body['language'] ?? ''));
         $exp  = $body['expires'] ?? '';
+        $burn = isset($body['burn_after_read']) && $body['burn_after_read'] === true;
 
         return new self(
             trim($body['content'] ?? ''),
             in_array($lang, self::getLangs(), true) ? $lang : 'plaintext',
             in_array($exp, self::getExpirations(), true) ? $exp : 'never',
             trim($body['password'] ?? '') ?: null,
+            $burn
         );
     }
 

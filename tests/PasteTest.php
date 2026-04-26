@@ -23,9 +23,9 @@ class PasteTest extends TestCase
     public function pasteCreationWorksCorrectly(string $content, string $language, string $expires, ?string $password): void
     {
         $result = Paste::create($this->pdo, $content, $language, $expires, $password);
-        $this->assertArrayHasKey('slug', $result);
-        $this->assertArrayHasKey('id', $result);
-        $this->assertSame(7, strlen($result['slug']));
+        $this->assertNotNull($result->getId());
+        $this->assertNotNull($result->getSlug());
+        $this->assertSame(7, strlen($result->getSlug()));
     }
 
     public static function pasteCreationProvider(): array
@@ -45,7 +45,7 @@ class PasteTest extends TestCase
     {
         if ($expectedContent !== null) {
             $created = Paste::create($this->pdo, $expectedContent, 'php', 'never', null);
-            $slug = $created['slug'];
+            $slug = $created->getSlug();
         }
         
         $found = Paste::findBySlug($this->pdo, $slug);
@@ -54,7 +54,7 @@ class PasteTest extends TestCase
             $this->assertNull($found);
         } else {
             $this->assertNotNull($found);
-            $this->assertSame($expectedContent, $found['content']);
+            $this->assertSame($expectedContent, $found->getContent());
         }
     }
 
@@ -85,9 +85,9 @@ class PasteTest extends TestCase
     public function incrementViews(): void
     {
         $created = Paste::create($this->pdo, 'code', 'php', 'never', null);
-        Paste::incrementViews($this->pdo, $created['slug']);
-        $found = Paste::findBySlug($this->pdo, $created['slug']);
-        $this->assertSame(1, (int)$found['views']);
+        Paste::incrementViews($this->pdo, $created->getSlug());
+        $found = Paste::findBySlug($this->pdo, $created->getSlug());
+        $this->assertSame(1, $found->getViews());
     }
 
     /**
@@ -107,8 +107,138 @@ class PasteTest extends TestCase
     public function passwordHashIsStored(): void
     {
         $created = Paste::create($this->pdo, 'secret', 'php', 'never', 'mypassword');
-        $found = Paste::findBySlug($this->pdo, $created['slug']);
-        $this->assertNotNull($found['password_hash']);
-        $this->assertTrue(password_verify('mypassword', $found['password_hash']));
+        $found = Paste::findBySlug($this->pdo, $created->getSlug());
+        $this->assertNotNull($found->getPasswordHash());
+        $this->assertTrue(password_verify('mypassword', $found->getPasswordHash()));
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadIsStoredWhenTrue(): void
+    {
+        $created = Paste::create($this->pdo, 'secret', 'php', 'never', null, true);
+        $found = Paste::findBySlug($this->pdo, $created->getSlug());
+        $this->assertTrue($found->isBurnAfterRead());
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadIsStoredWhenFalse(): void
+    {
+        $created = Paste::create($this->pdo, 'secret', 'php', 'never', null, false);
+        $found = Paste::findBySlug($this->pdo, $created->getSlug());
+        $this->assertFalse($found->isBurnAfterRead());
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadDefaultsFalse(): void
+    {
+        $created = Paste::create($this->pdo, 'secret', 'php', 'never', null);
+        $found = Paste::findBySlug($this->pdo, $created->getSlug());
+        $this->assertFalse($found->isBurnAfterRead());
+    }
+
+    /**
+     * @test
+     */
+    public function burnIfNeededDeletesSnippet(): void
+    {
+        $created = Paste::create($this->pdo, 'secret', 'php', 'never', null, true);
+        $slug = $created->getSlug();
+
+        // Verify it exists before burn
+        $before = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNotNull($before);
+
+        // Burn it
+        Paste::burnIfNeeded($this->pdo, $slug);
+
+        // Verify it's gone after burn
+        $after = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNull($after);
+    }
+
+    /**
+     * @test
+     */
+    public function burnIfNeededDoesNothingWhenBurnFalse(): void
+    {
+        $created = Paste::create($this->pdo, 'secret', 'php', 'never', null, false);
+        $slug = $created->getSlug();
+
+        Paste::burnIfNeeded($this->pdo, $slug);
+
+        // Snippet should still exist
+        $found = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNotNull($found);
+        $this->assertSame('secret', $found->getContent());
+    }
+
+    /**
+     * @test
+     */
+    public function burnWithPasswordProtection(): void
+    {
+        $created = Paste::create($this->pdo, 'secret', 'php', 'never', 'pass123', true);
+        $slug = $created->getSlug();
+
+        $before = Paste::findBySlug($this->pdo, $slug);
+        $this->assertTrue($before->isBurnAfterRead());
+        $this->assertNotNull($before->getPasswordHash());
+
+        Paste::burnIfNeeded($this->pdo, $slug);
+
+        $after = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNull($after);
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterViewIncrement(): void
+    {
+        $created = Paste::create($this->pdo, 'secret', 'php', 'never', null, true);
+        $slug = $created->getSlug();
+
+        // Increment views (simulating a view)
+        $views = Paste::incrementViews($this->pdo, $slug);
+        $this->assertSame(1, $views);
+
+        // Burn it
+        Paste::burnIfNeeded($this->pdo, $slug);
+
+        // Should be deleted
+        $found = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNull($found);
+    }
+
+    /**
+     * @test
+     */
+    public function snippetAvailableAfterViewUntilBurned(): void
+    {
+        $created = Paste::create($this->pdo, 'shareable secret', 'php', 'never', null, true);
+        $slug = $created->getSlug();
+
+        // User views the snippet
+        $paste1 = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNotNull($paste1);
+        Paste::incrementViews($this->pdo, $slug);
+
+        // Snippet still exists (can share URL)
+        $paste2 = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNotNull($paste2);
+        $this->assertSame('shareable secret', $paste2->getContent());
+
+        // User leaves page - snippet burned
+        Paste::burnIfNeeded($this->pdo, $slug);
+
+        // Now it's gone
+        $paste3 = Paste::findBySlug($this->pdo, $slug);
+        $this->assertNull($paste3);
     }
 }

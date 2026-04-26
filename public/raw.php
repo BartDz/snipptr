@@ -6,12 +6,12 @@ use Snipptr\Paste;
 use Snipptr\Request;
 use Snipptr\Response;
 
-$pdo   = Database::connect();
-$slug  = Request::getSlug();
+$pdo = Database::connect();
+$slug = Request::getSlug();
 $paste = Paste::findBySlug($pdo, $slug);
 
-if (!$paste || $paste['password_hash'] !== null) {
+if (!$paste || $paste->getPasswordHash() !== null) {
     Response::notFound();
 }
 
-Response::text($paste['content']);
+Response::text($paste->getContent());

@@ -10,16 +10,16 @@ use Snipptr\Response;
 
 session_start();
 
-$pdo           = Database::connect();
-$csrfToken     = Csrf::token();
-$error         = null;
-$forkContent   = $_SESSION['fork_content'] ?? null;
+$pdo = Database::connect();
+$csrfToken = Csrf::token();
+$error = null;
+$forkContent = $_SESSION['fork_content'] ?? null;
 unset($_SESSION['fork_content']);
 
 if (Request::isPost()) {
     Csrf::check();
 
-    $ip    = Request::getIp();
+    $ip = Request::getIp();
     $input = PasteInput::fromPost($_POST);
 
     if (Paste::isRateLimited($pdo, $ip)) {
@@ -28,8 +28,8 @@ if (Request::isPost()) {
         $error = $input->error;
     } else {
         Paste::trackRequest($pdo, $ip);
-        $paste = Paste::create($pdo, $input->content, $input->language, $input->expires, $input->password);
-        Response::redirect('/p/' . $paste['slug']);
+        $paste = Paste::create($pdo, $input->content, $input->language, $input->expires, $input->password, $input->burnAfterRead);
+        Response::redirect('/p/' . $paste->getSlug());
     }
 }
 
@@ -96,6 +96,13 @@ $languages = [
             </div>
 
             <textarea id="editor" name="content" placeholder="Paste your code here..."><?= $forkContent ? htmlspecialchars($forkContent) : (isset($_POST['content']) ? htmlspecialchars($_POST['content']) : '') ?></textarea>
+
+            <div class="form-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="burn_after_read">
+                    Read and burn (delete after first view)
+                </label>
+            </div>
 
             <div class="form-actions">
                 <button type="button" id="detect-btn" class="btn-secondary">Auto-detect language</button>

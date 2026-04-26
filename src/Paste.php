@@ -3,6 +3,7 @@
 namespace Snipptr;
 
 use PDO;
+use Snipptr\Entity\PasteEntity;
 
 class Paste
 {
@@ -11,8 +12,9 @@ class Paste
         string $content,
         string $language,
         string $expires,
-        ?string $password
-    ): array {
+        ?string $password,
+        bool $burnAfterRead = false
+    ): PasteEntity {
         $slug = Slug::unique($pdo);
         $expiresAt = match ($expires) {
             '1h'  => date('Y-m-d H:i:s', strtotime('+1 hour')),
@@ -22,9 +24,9 @@ class Paste
         };
 
         $stmt = $pdo->prepare('
-            INSERT INTO pastes (slug, content, language, expires_at, password_hash)
-            VALUES (:slug, :content, :language, :expires_at, :password_hash)
-            RETURNING id, slug, created_at, expires_at
+            INSERT INTO pastes (slug, content, language, expires_at, password_hash, burn_after_read)
+            VALUES (:slug, :content, :language, :expires_at, :password_hash, :burn_after_read)
+            RETURNING *
         ');
         $stmt->execute([
             ':slug'          => $slug,
@@ -32,15 +34,16 @@ class Paste
             ':language'      => $language,
             ':expires_at'    => $expiresAt,
             ':password_hash' => $password ? password_hash($password, PASSWORD_BCRYPT) : null,
+            ':burn_after_read' => $burnAfterRead ? 'true' : 'false',
         ]);
 
-        return $stmt->fetch();
+        return PasteEntity::fromArray($stmt->fetch());
     }
 
     public static function findBySlug(
         PDO $pdo,
         string $slug
-    ): ?array {
+    ): ?PasteEntity {
         $stmt = $pdo->prepare('SELECT * FROM pastes WHERE slug = ?');
         $stmt->execute([$slug]);
         $paste = $stmt->fetch();
@@ -49,12 +52,13 @@ class Paste
             return null;
         }
 
-        if ($paste['expires_at'] && strtotime($paste['expires_at']) < time()) {
+        $entity = PasteEntity::fromArray($paste);
+        if ($entity->isExpired()) {
             self::delete($pdo, $slug);
             return null;
         }
 
-        return $paste;
+        return $entity;
     }
 
     public static function incrementViews(
@@ -71,6 +75,19 @@ class Paste
         string $slug
     ): void {
         $pdo->prepare('DELETE FROM pastes WHERE slug = ?')->execute([$slug]);
+    }
+
+    public static function burnIfNeeded(
+        PDO $pdo,
+        string $slug
+    ): void {
+        $stmt = $pdo->prepare('SELECT burn_after_read FROM pastes WHERE slug = ?');
+        $stmt->execute([$slug]);
+        $result = $stmt->fetch();
+
+        if ($result && $result['burn_after_read']) {
+            self::delete($pdo, $slug);
+        }
     }
 
     private static function hashIp(string $ip): string
@@ -112,9 +129,9 @@ class Paste
 
         return self::create(
             $pdo,
-            $original['content'],
-            $original['language'],
-            $original['expires_at'] ? self::getExpiresOption($original['expires_at']) : 'never',
+            $original->getContent(),
+            $original->getLanguage(),
+            $original->getExpiresAt() ? self::getExpiresOption($original->getExpiresAt()) : 'never',
             null
         );
     }

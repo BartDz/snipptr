@@ -82,7 +82,7 @@ class PasteInputTest extends TestCase
     {
         $pasteInput = PasteInput::fromJson($input);
         $this->assertSame($shouldBeValid, $pasteInput->isValid());
-        
+
         if (!empty($expectedValues)) {
             foreach ($expectedValues as $field => $expected) {
                 $this->assertSame($expected, $pasteInput->$field);
@@ -108,5 +108,50 @@ class PasteInputTest extends TestCase
                 false
             ],
         ];
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadFromPostWhenChecked(): void
+    {
+        $input = PasteInput::fromPost(['content' => 'test', 'burn_after_read' => 'on']);
+        $this->assertTrue($input->burnAfterRead);
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadFromPostDefaultsFalse(): void
+    {
+        $input = PasteInput::fromPost(['content' => 'test']);
+        $this->assertFalse($input->burnAfterRead);
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadFromJsonWhenTrue(): void
+    {
+        $input = PasteInput::fromJson(['content' => 'test', 'burn_after_read' => true]);
+        $this->assertTrue($input->burnAfterRead);
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadFromJsonDefaultsFalse(): void
+    {
+        $input = PasteInput::fromJson(['content' => 'test']);
+        $this->assertFalse($input->burnAfterRead);
+    }
+
+    /**
+     * @test
+     */
+    public function burnAfterReadFromJsonIgnoresFalseValue(): void
+    {
+        $input = PasteInput::fromJson(['content' => 'test', 'burn_after_read' => false]);
+        $this->assertFalse($input->burnAfterRead);
     }
 }

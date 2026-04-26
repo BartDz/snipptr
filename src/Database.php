@@ -46,6 +46,7 @@ class Database
                 language VARCHAR(50) NOT NULL DEFAULT 'plaintext',
                 expires_at TIMESTAMP NULL,
                 password_hash VARCHAR(255) NULL,
+                burn_after_read BOOLEAN NOT NULL DEFAULT FALSE,
                 views INTEGER NOT NULL DEFAULT 0,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -57,6 +58,11 @@ class Database
             );
 
             CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits(ip_hash, created_at);
+        ");
+
+        $pdo->exec("
+            ALTER TABLE pastes
+            ADD COLUMN IF NOT EXISTS burn_after_read BOOLEAN NOT NULL DEFAULT FALSE;
         ");
     }
 }

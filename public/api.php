@@ -25,14 +25,14 @@ if (!$input->isValid()) {
 }
 
 Paste::trackRequest($pdo, $ip);
-$paste = Paste::create($pdo, $input->content, $input->language, $input->expires, $input->password);
+$paste = Paste::create($pdo, $input->content, $input->language, $input->expires, $input->password, $input->burnAfterRead);
 
 $scheme  = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
 $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'];
 
 Response::json([
-    'url'        => $baseUrl . '/p/' . $paste['slug'],
-    'raw'        => $baseUrl . '/p/' . $paste['slug'] . '/raw',
-    'slug'       => $paste['slug'],
-    'expires_at' => $paste['expires_at'] ?? null,
+    'url'        => $baseUrl . '/p/' . $paste->getSlug(),
+    'raw'        => $baseUrl . '/p/' . $paste->getSlug() . '/raw',
+    'slug'       => $paste->getSlug(),
+    'expires_at' => $paste->getExpiresAt() ?? null,
 ]);

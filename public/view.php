@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Snipptr\Csrf;
@@ -7,38 +8,43 @@ use Snipptr\Paste;
 use Snipptr\Request;
 use Snipptr\Response;
 
-$pdo       = Database::connect();
-$csrfToken = Csrf::token();
-$slug      = Request::getSlug();
-$paste = Paste::findBySlug($pdo, $slug);
-
-if (!$paste) {
-    Response::notFound('<!DOCTYPE html><html><head><title>404</title></head><body style="font-family:monospace;padding:2rem"><h1>404 - Snippet not found or expired.</h1><a href="/">← New paste</a><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</body></html>');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-$hasPassword = $paste['password_hash'] !== null;
-$unlocked    = !$hasPassword;
-$wrongPass   = false;
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
-if ($hasPassword && Request::isPost()) {
+$pdo = Database::connect();
+$csrfToken = Csrf::token();
+$slug = Request::getSlug();
+$paste = Paste::findBySlug($pdo, $slug);
+if (!$paste) {
+    Response::notFound(file_get_contents(__DIR__ . '/../templates/404.php'));
+}
+
+$unlocked = !$paste->isPasswordProtected();
+$wrongPass = false;
+
+if ($paste->isPasswordProtected() && Request::isPost()) {
     Csrf::check();
-    if (password_verify($_POST['password'] ?? '', $paste['password_hash'])) {
+    if (password_verify($_POST['password'] ?? '', $paste->getPasswordHash())) {
         $unlocked = true;
     } else {
         $wrongPass = true;
     }
 }
 
+$isFirstView = $paste->getViews() === 0;
 if ($unlocked && !$wrongPass) {
     $views = Paste::incrementViews($pdo, $slug);
 } else {
-    $views = (int)$paste['views'];
+    $views = $paste->getViews();
 }
 
-$expiresMs = $paste['expires_at'] ? (int)(strtotime($paste['expires_at']) * 1000) : null;
-$lang      = htmlspecialchars($paste['language']);
-$content   = htmlspecialchars($paste['content']);
+$expiresMs = $paste->getExpiresAt() ? (int)(strtotime($paste->getExpiresAt()) * 1000) : null;
+$lang = htmlspecialchars($paste->getLanguage());
+$content = htmlspecialchars($paste->getContent());
 
 $prismLang = match ($paste['language']) {
     'html', 'xml' => 'markup',
@@ -77,10 +83,10 @@ $prismLang = match ($paste['language']) {
         <nav class="view-meta">
             <span class="badge"><?= $lang ?></span>
             <span class="badge"><?= $views ?> views</span>
-            <?php if ($paste['expires_at']): ?>
+            <?php if ($paste->getExpiresAt()): ?>
                 <span class="badge" id="countdown">…</span>
             <?php endif; ?>
-            <?php if ($unlocked && !$hasPassword): ?>
+            <?php if ($unlocked && !$paste->isPasswordProtected()): ?>
                 <a href="/p/<?= htmlspecialchars($slug) ?>/raw" class="badge badge-link">Raw</a>
             <?php endif; ?>
         </nav>
@@ -101,25 +107,42 @@ $prismLang = match ($paste['language']) {
 
     <?php else: ?>
     <main class="snippet-view fade-in">
+        <?php if ($paste->isBurnAfterRead()): ?>
+        <div class="burn-warning">
+            <strong>Read and Burn:</strong> This snippet will be deleted after <?= $isFirstView ? 'the next display' : 'you close this page. Screenshot now if needed' ?>.
+        </div>
+        <?php endif; ?>
         <div class="copy-bar">
-            <button id="copy-btn" class="btn-copy">Copy</button>
+            <button id="copy-code-btn" class="btn-copy">Copy code</button>
+            <button id="copy-url-btn" class="btn-copy">Copy URL</button>
+            <?php if (!$paste->isBurnAfterRead()): ?>
             <button id="fork-btn" class="btn-copy">Fork</button>
+            <?php endif; ?>
         </div>
         <pre class="line-numbers"><code class="language-<?= $prismLang ?>"><?= $content ?></code></pre>
-        <div class="qr-section" style="margin-top:1rem;text-align:center;min-height:220px;display:flex;flex-direction:column;align-items:center;">
-            <div id="qr-container" style="display:none;margin-bottom:1rem;padding:1rem;background:#fff;border-radius:8px;min-height:180px;"></div>
+        <?php if (!$paste->isBurnAfterRead()): ?>
+        <div class="qr-section">
+            <div id="qr-container"></div>
             <button id="qr-toggle" class="btn-secondary">Show QR</button>
         </div>
+        <?php endif; ?>
     </div>
         </main>
 
     <script>
     window.snipptrData = {
-        content:   <?= json_encode($paste['content'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-        slug:      <?= json_encode($slug) ?>,
-        expiresMs: <?= $expiresMs ?? 'null' ?>,        
+        content: <?= json_encode($paste->getContent(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        slug: <?= json_encode($slug) ?>,
+        expiresMs: <?= $expiresMs ?? 'null' ?>,
         url: <?= json_encode('http' . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:8080') . '/p/' . $slug) ?>,
+        burnAfterRead: <?= $paste->isBurnAfterRead() ? 'true' : 'false' ?>,
     };
+
+    if (window.snipptrData.burnAfterRead) {
+        window.addEventListener('pagehide', () => {
+            navigator.sendBeacon('/burn.php', new URLSearchParams({slug: window.snipptrData.slug}));
+        });
+    }
     </script>
     <script src="/assets/view.js"></script>
     <?php endif; ?>
